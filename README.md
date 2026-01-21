@@ -1,36 +1,130 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Motioner - The Automated Dev-Rel
+
+Transform GitHub PRs into 30-second high-energy changelog videos for X (Twitter).
+
+## Features
+
+- 🤖 **AI-Powered Analysis**: GPT-4o analyzes PRs and generates engaging scripts
+- 🎬 **Remotion Templates**: Three core templates (Feature Flash, Refactor/Speed, Bug Squash)
+- ⚡ **Fast Rendering**: Ready for AWS Lambda or Remotion Lambda integration
+- 🎨 **HITL Interface**: Human-in-the-loop editor to review and tweak before rendering
+- 🔒 **Brand Safety**: Automatic detection and sanitization of sensitive information
+
+## Tech Stack
+
+- **Frontend**: Next.js 16 with App Router
+- **Database**: Supabase (PostgreSQL)
+- **Video**: Remotion (React-based programmatic video)
+- **AI**: OpenAI GPT-4o
+- **Auth**: Supabase Auth with GitHub OAuth
 
 ## Getting Started
 
-First, run the development server:
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+2. **Set up Supabase**:
+   - Create a new Supabase project
+   - Run migrations:
+     ```bash
+     npx supabase db push
+     ```
+   - Configure GitHub OAuth in Supabase Dashboard
+
+3. **Configure environment variables**:
+   ```bash
+   cp .env.local.example .env.local
+   # Fill in your Supabase and OpenAI credentials
+   ```
+
+4. **Start the development server**:
+   ```bash
+   npm run dev
+   ```
+
+5. **Start Remotion Studio** (in a separate terminal):
+   ```bash
+   cd remotion
+   npm install
+   npm run dev
+   ```
+
+## Project Structure
+
+```
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   │   ├── pr/           # PR analysis endpoints
+│   │   └── video/        # Video rendering endpoints
+│   ├── editor/            # HITL editor interface
+│   └── auth/             # Auth callbacks
+├── remotion/              # Remotion video project
+│   └── src/
+│       ├── compositions/  # Video templates
+│       └── components/   # Reusable video components
+├── lib/                   # Shared utilities
+│   └── supabase/         # Supabase client helpers
+├── utils/                 # Utility functions
+│   └── pr-analyzer.ts    # PR analysis logic
+└── supabase/
+    └── migrations/       # Database migrations
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Core Templates
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. **Feature Flash**: High-energy showcase of new features with UI screenshots
+2. **Refactor/Speed**: Split-screen code comparison with speedometer gauge
+3. **Bug Squash**: Playful animation showing bug fixes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## API Endpoints
 
-## Learn More
+### POST `/api/pr/analyze`
+Analyzes a GitHub PR and generates video props.
 
-To learn more about Next.js, take a look at the following resources:
+**Request Body**:
+```json
+{
+  "prTitle": "string",
+  "prDescription": "string",
+  "diffText": "string",
+  "prUrl": "string",
+  "githubRepo": "string",
+  "githubRepoOwner": "string",
+  "githubPrId": "number",
+  "prNumber": "number"
+}
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### POST `/api/video/render`
+Starts video rendering process.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Request Body**:
+```json
+{
+  "videoId": "uuid",
+  "remotionProps": {}
+}
+```
 
-## Deploy on Vercel
+## Roadmap
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### MVP (Current)
+- ✅ Basic Remotion templates
+- ✅ PR analysis with GPT-4o
+- ✅ HITL editor interface
+- ✅ Database schema
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### V1 (Future)
+- [ ] GitHub webhook integration
+- [ ] AWS Lambda rendering
+- [ ] Multi-modal inputs (video transcription)
+- [ ] X (Twitter) OAuth integration
+- [ ] Automated posting
+- [ ] 20+ custom brand themes
+- [ ] Background music sync
+
+## License
+
+MIT
