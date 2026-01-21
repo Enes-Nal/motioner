@@ -4,6 +4,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { getSupabaseEnv } from '@/lib/supabase/env'
+import { parseGitHubUrl } from '@/lib/github/url'
+import { AppShell } from '@/components/app/app-shell'
+import { SupabaseMissing } from '@/components/app/supabase-missing'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 export default function CreatePage() {
   const [prUrl, setPrUrl] = useState('')
@@ -13,20 +21,7 @@ export default function CreatePage() {
   const hasSupabase = getSupabaseEnv().ok
 
   if (!hasSupabase) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white flex items-center justify-center p-8">
-        <div className="max-w-xl w-full bg-gray-800/50 rounded-lg p-8 border border-gray-700">
-          <h1 className="text-2xl font-bold mb-4">Supabase not configured</h1>
-          <p className="text-gray-300">
-            Create a <code className="bg-gray-900/70 px-2 py-1 rounded">.env.local</code>{' '}
-            (copy from <code className="bg-gray-900/70 px-2 py-1 rounded">env.template</code>) and set:
-          </p>
-          <code className="block mt-4 bg-gray-900/70 p-3 rounded text-sm">
-            NEXT_PUBLIC_SUPABASE_URL{'\n'}NEXT_PUBLIC_SUPABASE_ANON_KEY
-          </code>
-        </div>
-      </div>
-    )
+    return <SupabaseMissing />
   }
 
   const supabase = createClient()
@@ -46,80 +41,109 @@ export default function CreatePage() {
         return
       }
 
-      // Parse PR URL
-      const urlMatch = prUrl.match(
-        /github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/
-      )
-      if (!urlMatch) {
-        setError('Invalid GitHub PR URL. Format: https://github.com/owner/repo/pull/123')
+      const parsed = parseGitHubUrl(prUrl)
+      if (!parsed) {
+        setError(
+          'Invalid GitHub URL. Use either https://github.com/owner/repo or https://github.com/owner/repo/pull/123'
+        )
         setLoading(false)
         return
       }
 
-      const [, owner, repo, prNumber] = urlMatch
+      if (parsed.type === 'pr') {
+        // For MVP, we'll use manual input form for PRs.
+        router.push(
+          `/editor?manual=true&owner=${parsed.owner}&repo=${parsed.repo}&pr=${parsed.prNumber}`
+        )
+        return
+      }
 
-      // For MVP, we'll use manual input form
-      // In production, this would fetch from GitHub API
-      router.push(`/editor?manual=true&owner=${owner}&repo=${repo}&pr=${prNumber}`)
-    } catch (err: any) {
-      setError(err.message || 'Failed to process PR')
+      // Repo URL: generate a project overview video and open it in the editor.
+      const response = await fetch('/api/repo/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoUrl: prUrl }),
+      })
+
+      const data = (await response.json().catch(() => null)) as
+        | { error?: string; videoId?: string }
+        | null
+      if (!response.ok) {
+        setError(data?.error || 'Failed to analyze repo')
+        setLoading(false)
+        return
+      }
+
+      if (!data?.videoId) {
+        setError('Repo analysis succeeded but returned no videoId.')
+        setLoading(false)
+        return
+      }
+
+      router.push(`/editor?id=${data.videoId}`)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to process PR'
+      setError(message)
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white flex items-center justify-center p-8">
-      <div className="max-w-2xl w-full bg-gray-800/50 rounded-lg p-8">
-        <h1 className="text-3xl font-bold mb-6">Create Changelog Video</h1>
-        <p className="text-gray-400 mb-8">
-          Enter a GitHub PR URL to generate a changelog video
-        </p>
+    <AppShell
+      title="Create"
+      description="Paste a GitHub PR URL or repo URL to start a new video."
+    >
+      <div className="grid gap-6 md:grid-cols-5">
+        <Card className="md:col-span-3">
+          <CardHeader>
+            <CardTitle>GitHub link</CardTitle>
+            <CardDescription>
+              PR URLs open the editor in manual PR mode. Repo URLs generate a quick project overview video.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="prUrl">GitHub URL</Label>
+                <Input
+                  id="prUrl"
+                  type="url"
+                  value={prUrl}
+                  onChange={(e) => setPrUrl(e.target.value)}
+                  placeholder="https://github.com/owner/repo or .../pull/123"
+                  required
+                />
+              </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label
-              htmlFor="prUrl"
-              className="block text-sm font-medium mb-2"
-            >
-              GitHub PR URL
-            </label>
-            <input
-              id="prUrl"
-              type="url"
-              value={prUrl}
-              onChange={(e) => setPrUrl(e.target.value)}
-              placeholder="https://github.com/owner/repo/pull/123"
-              className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-3 text-lg"
-              required
-            />
-          </div>
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTitle>Invalid input</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-          {error && (
-            <div className="bg-red-900/50 border border-red-700 rounded px-4 py-3 text-red-200">
-              {error}
-            </div>
-          )}
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? 'Processing…' : 'Continue'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-4 rounded-lg font-semibold transition"
-          >
-            {loading ? 'Processing...' : 'Create Video'}
-          </button>
-        </form>
-
-        <div className="mt-8 pt-8 border-t border-gray-700">
-          <h2 className="text-lg font-semibold mb-4">How it works:</h2>
-          <ol className="list-decimal list-inside space-y-2 text-gray-400">
-            <li>Paste your merged GitHub PR URL</li>
-            <li>AI analyzes the PR and generates a video concept</li>
-            <li>Edit and customize in the HITL editor</li>
-            <li>Render and download your changelog video</li>
-          </ol>
-        </div>
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>How it works</CardTitle>
+            <CardDescription>From PR to publishable video in minutes.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
+              <li>Paste a PR URL or repo URL</li>
+              <li>Review the generated props</li>
+              <li>Preview the Remotion composition</li>
+              <li>Render and download</li>
+            </ol>
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </AppShell>
   )
 }
-

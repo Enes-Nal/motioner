@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { analyzePR, detectSensitiveInfo, sanitizeCode } from '@/utils/pr-analyzer'
 
 export async function POST(request: Request) {
   try {
@@ -46,12 +45,12 @@ export async function POST(request: Request) {
       repo,
       prNumber,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('PR creation error:', error)
+    const message = error instanceof Error ? error.message : 'Failed to process PR'
     return NextResponse.json(
-      { error: error.message || 'Failed to process PR' },
+      { error: message },
       { status: 500 }
     )
   }
 }
-

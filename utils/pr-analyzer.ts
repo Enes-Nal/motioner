@@ -50,6 +50,16 @@ export interface PRAnalysis {
   screenshotUrl?: string
 }
 
+export interface RepoOverviewInput {
+  fullName: string
+  description?: string | null
+  readmeText?: string | null
+  languages?: string[]
+  topics?: string[]
+  stars?: number
+  forks?: number
+}
+
 export async function analyzePR(
   prTitle: string,
   prDescription: string,
@@ -94,7 +104,7 @@ ${diffText.substring(0, 4000)}`
   if (useOpenRouter && openRouter) {
     // Use OpenRouter with DeepSeek model
     const model = process.env.OPENROUTER_MODEL || 'deepseek/deepseek-r1-0528:free'
-    
+
     const response = await openRouter.chat.completions.create({
       model: model,
       messages: [
@@ -171,6 +181,105 @@ ${diffText.substring(0, 4000)}`
   return JSON.parse(jsonContent) as PRAnalysis
 }
 
+export async function analyzeRepoOverview(input: RepoOverviewInput): Promise<PRAnalysis> {
+  const systemPrompt = `You are a creative director for developer relations videos. Your job is to create an engaging 30-second "project overview" video concept for a GitHub repository.
+
+You will be given repository metadata and (optionally) README text. Create a concise video concept that explains what the project is, who it's for, and the main capabilities.
+
+Return JSON matching this structure:
+{
+  "theme": "feature",
+  "title": "string (max 60 characters, should be the repo/product name)",
+  "highlightCode": "string (optional: a short snippet or README excerpt)",
+  "voiceoverScript": "string (15-25 seconds when spoken, energetic, clear)",
+  "durationSeconds": 15,
+  "primaryColor": "#hexcolor",
+  "screenshotUrl": "string (optional, may be empty)"
+}
+
+Constraints:
+- Always set theme to "feature" (we'll reuse the existing feature composition).
+- Don't invent specific capabilities that aren't implied by the input.
+- If README is missing, keep it general and focus on positioning.`
+
+  const readme = (input.readmeText || '').trim()
+  const readmeExcerpt = readme ? readme.slice(0, 2500) : ''
+
+  const userPrompt = `Repository: ${input.fullName}
+Description: ${input.description || ''}
+Topics: ${(input.topics || []).join(', ')}
+Languages: ${(input.languages || []).join(', ')}
+Stars: ${input.stars ?? ''}
+Forks: ${input.forks ?? ''}
+
+README (excerpt):
+${readmeExcerpt}`
+
+  let content: string
+
+  if (useOpenRouter && openRouter) {
+    const model = process.env.OPENROUTER_MODEL || 'deepseek/deepseek-r1-0528:free'
+
+    const response = await openRouter.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+    })
+
+    const messageContent = response.choices[0]?.message?.content
+    if (!messageContent) throw new Error('Failed to get repo overview analysis from OpenRouter')
+    content = messageContent
+  } else if (useClaude && anthropic) {
+    const response = await anthropic.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 1500,
+      system: systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: `${userPrompt}\n\nPlease respond with valid JSON only, matching the structure specified in the system prompt.`,
+        },
+      ],
+    })
+
+    const textContent = response.content.find((item) => item.type === 'text') as
+      | { type: 'text'; text: string }
+      | undefined
+    if (!textContent) throw new Error('Failed to get repo overview analysis from Claude')
+    content = textContent.text
+  } else if (useOpenAI && openai) {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+    })
+
+    const messageContent = response.choices[0]?.message?.content
+    if (!messageContent) throw new Error('Failed to get repo overview analysis from OpenAI')
+    content = messageContent
+  } else {
+    throw new Error(
+      'No AI provider configured. Set OPENROUTER_API_KEY, OPENAI_API_KEY, or ANTHROPIC_API_KEY'
+    )
+  }
+
+  let jsonContent = content.trim()
+  if (jsonContent.startsWith('```')) {
+    const match = jsonContent.match(/```(?:json)?\n([\s\S]*?)\n```/)
+    if (match) jsonContent = match[1]
+  }
+
+  return JSON.parse(jsonContent) as PRAnalysis
+}
+
 export function detectSensitiveInfo(text: string): boolean {
   // Simple detection patterns - can be enhanced
   const patterns = [
@@ -203,4 +312,3 @@ export function sanitizeCode(code: string): string {
 
   return sanitized
 }
-

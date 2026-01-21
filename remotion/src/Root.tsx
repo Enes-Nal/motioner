@@ -7,7 +7,7 @@ import { BugSquash, type BugSquashProps } from './compositions/BugSquash'
 export const RemotionRoot: React.FC = () => {
   return (
     <>
-      <Composition<any, FeatureFlashProps>
+      <Composition<Record<string, unknown>, FeatureFlashProps>
         id="FeatureFlash"
         component={FeatureFlash}
         durationInFrames={450}
@@ -20,7 +20,7 @@ export const RemotionRoot: React.FC = () => {
           primaryColor: '#6366f1',
         }}
       />
-      <Composition<any, RefactorSpeedProps>
+      <Composition<Record<string, unknown>, RefactorSpeedProps>
         id="RefactorSpeed"
         component={RefactorSpeed}
         durationInFrames={450}
@@ -35,7 +35,7 @@ export const RemotionRoot: React.FC = () => {
           primaryColor: '#10b981',
         }}
       />
-      <Composition<any, BugSquashProps>
+      <Composition<Record<string, unknown>, BugSquashProps>
         id="BugSquash"
         component={BugSquash}
         durationInFrames={450}

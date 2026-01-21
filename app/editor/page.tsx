@@ -8,47 +8,46 @@ import { FeatureFlash } from '@/remotion/src/compositions/FeatureFlash'
 import { RefactorSpeed } from '@/remotion/src/compositions/RefactorSpeed'
 import { BugSquash } from '@/remotion/src/compositions/BugSquash'
 import { getSupabaseEnv } from '@/lib/supabase/env'
+import { AppShell } from '@/components/app/app-shell'
+import { SupabaseMissing } from '@/components/app/supabase-missing'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+
+type EditingTheme = 'feature' | 'refactor' | 'bug'
+type EditingProps = {
+  theme: EditingTheme | string
+  title?: string
+  primaryColor?: string
+  screenshotUrl?: string
+  beforeCode?: string
+  afterCode?: string
+  speedImprovement?: number
+  bugDescription?: string
+}
+
+type VideoRow = {
+  id: string
+  title?: string | null
+  remotion_props?: unknown
+}
 
 export default function EditorPage() {
-  const [video, setVideo] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [editingProps, setEditingProps] = useState<any>(null)
   const hasSupabase = getSupabaseEnv().ok
+  if (!hasSupabase) return <SupabaseMissing />
+  return <EditorInner />
+}
 
-  if (!hasSupabase) {
-    return (
-      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center p-8">
-        <div className="max-w-xl w-full bg-gray-800/50 rounded-lg p-8 border border-gray-700">
-          <h1 className="text-2xl font-bold mb-4">Supabase not configured</h1>
-          <p className="text-gray-300">
-            Create a <code className="bg-gray-900/70 px-2 py-1 rounded">.env.local</code>{' '}
-            (copy from <code className="bg-gray-900/70 px-2 py-1 rounded">env.template</code>) and set:
-          </p>
-          <code className="block mt-4 bg-gray-900/70 p-3 rounded text-sm">
-            NEXT_PUBLIC_SUPABASE_URL{'\n'}NEXT_PUBLIC_SUPABASE_ANON_KEY
-          </code>
-        </div>
-      </div>
-    )
-  }
+function EditorInner() {
+  const [video, setVideo] = useState<VideoRow | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [editingProps, setEditingProps] = useState<EditingProps | null>(null)
 
   const supabase = createClient()
-
-  useEffect(() => {
-    // Get video ID or manual params from URL
-    const params = new URLSearchParams(window.location.search)
-    const videoId = params.get('id')
-    const isManual = params.get('manual') === 'true'
-
-    if (videoId) {
-      loadVideo(videoId)
-    } else if (isManual) {
-      // Handle manual PR input
-      handleManualPR(params)
-    } else {
-      setLoading(false)
-    }
-  }, [])
 
   async function handleManualPR(params: URLSearchParams) {
     const owner = params.get('owner')
@@ -62,10 +61,11 @@ export default function EditorPage() {
 
     // For manual input, show a form to enter PR details
     // In production, this would fetch from GitHub API
+    setVideo({ id: 'manual', title: null, remotion_props: null })
     setEditingProps({
       theme: 'feature',
       title: `PR #${prNumber} from ${owner}/${repo}`,
-      primaryColor: '#6366f1',
+      primaryColor: '#3ecf8e',
       screenshotUrl: '',
     })
     setLoading(false)
@@ -84,10 +84,26 @@ export default function EditorPage() {
       return
     }
 
-    setVideo(data)
-    setEditingProps(data.remotion_props || {})
+    setVideo({ id: data.id, title: data.title ?? null, remotion_props: data.remotion_props })
+    setEditingProps((data.remotion_props as EditingProps) || null)
     setLoading(false)
   }
+
+  useEffect(() => {
+    // Get video ID or manual params from URL
+    const params = new URLSearchParams(window.location.search)
+    const videoId = params.get('id')
+    const isManual = params.get('manual') === 'true'
+
+    if (videoId) {
+      void loadVideo(videoId)
+    } else if (isManual) {
+      void handleManualPR(params)
+    } else {
+      setLoading(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleSave() {
     if (!video) return
@@ -128,14 +144,14 @@ export default function EditorPage() {
   }
 
   function getCompositionConfig(): null | {
-    component: ComponentType<any>
+    component: ComponentType<Record<string, unknown>>
     inputProps: Record<string, unknown>
   } {
     if (!editingProps) return null
 
     const commonProps = {
       title: editingProps.title || 'Untitled',
-      primaryColor: editingProps.primaryColor || '#6366f1',
+      primaryColor: editingProps.primaryColor || '#3ecf8e',
     }
 
     switch (editingProps.theme) {
@@ -172,36 +188,63 @@ export default function EditorPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">Loading...</div>
-      </div>
+      <AppShell title="Editor" description="Loading your video…">
+        <div className="mx-auto max-w-xl">
+          <Alert>
+            <AlertTitle>Loading</AlertTitle>
+            <AlertDescription>Fetching your video and props…</AlertDescription>
+          </Alert>
+        </div>
+      </AppShell>
     )
   }
 
   if (!video || !editingProps) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">No video found</div>
-      </div>
+      <AppShell title="Editor" description="No video found.">
+        <div className="mx-auto max-w-xl">
+          <Card>
+            <CardHeader>
+              <CardTitle>Nothing to edit</CardTitle>
+              <CardDescription>
+                Create a video from a PR, then come back here to preview and render.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <a
+                href="/create"
+                className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+              >
+                Create a video
+              </a>
+            </CardContent>
+          </Card>
+        </div>
+      </AppShell>
     )
   }
 
   const compositionConfig = getCompositionConfig()
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Video Editor</h1>
-          <p className="text-gray-400">Edit your changelog video before rendering</p>
+    <AppShell
+      title="Editor"
+      description="Preview and tweak props before rendering."
+      actions={
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">{editingProps.theme}</Badge>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Pane: Remotion Player */}
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Preview</h2>
-            {compositionConfig && (
-              <div className="bg-black rounded-lg overflow-hidden">
+      }
+    >
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Preview</CardTitle>
+            <CardDescription>Remotion player preview (square).</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {compositionConfig ? (
+              <div className="overflow-hidden rounded-xl border bg-black">
                 <Player
                   component={compositionConfig.component}
                   inputProps={compositionConfig.inputProps}
@@ -210,157 +253,122 @@ export default function EditorPage() {
                   compositionHeight={1080}
                   fps={30}
                   controls
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                  }}
+                  style={{ width: '100%', height: 'auto' }}
+                />
+              </div>
+            ) : (
+              <Alert>
+                <AlertTitle>Unsupported theme</AlertTitle>
+                <AlertDescription>
+                  This video’s theme isn’t mapped to a composition.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Properties</CardTitle>
+            <CardDescription>These values are used as Remotion input props.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input
+                type="text"
+                value={editingProps.title || ''}
+                onChange={(e) => setEditingProps({ ...editingProps, title: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Primary color</Label>
+              <Input
+                type="color"
+                value={editingProps.primaryColor || '#3ecf8e'}
+                onChange={(e) =>
+                  setEditingProps({ ...editingProps, primaryColor: e.target.value })
+                }
+                className="h-10 p-1"
+              />
+            </div>
+
+            {editingProps.theme === 'refactor' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Before code</Label>
+                  <Textarea
+                    value={editingProps.beforeCode || ''}
+                    onChange={(e) =>
+                      setEditingProps({ ...editingProps, beforeCode: e.target.value })
+                    }
+                    className="font-mono text-xs"
+                    rows={6}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>After code</Label>
+                  <Textarea
+                    value={editingProps.afterCode || ''}
+                    onChange={(e) =>
+                      setEditingProps({ ...editingProps, afterCode: e.target.value })
+                    }
+                    className="font-mono text-xs"
+                    rows={6}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Speed improvement (%)</Label>
+                  <Input
+                    type="number"
+                    value={editingProps.speedImprovement || 0}
+                    onChange={(e) =>
+                      setEditingProps({
+                        ...editingProps,
+                        speedImprovement: parseInt(e.target.value) || 0,
+                      })
+                    }
+                  />
+                </div>
+              </>
+            )}
+
+            {editingProps.theme === 'bug' && (
+              <div className="space-y-2">
+                <Label>Bug description</Label>
+                <Textarea
+                  value={editingProps.bugDescription || ''}
+                  onChange={(e) =>
+                    setEditingProps({ ...editingProps, bugDescription: e.target.value })
+                  }
+                  rows={4}
                 />
               </div>
             )}
-          </div>
 
-          {/* Right Pane: Editing Controls */}
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Edit Properties</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Title</label>
-                <input
-                  type="text"
-                  value={editingProps.title || ''}
+            {editingProps.theme === 'feature' && (
+              <div className="space-y-2">
+                <Label>Screenshot URL</Label>
+                <Input
+                  type="url"
+                  value={editingProps.screenshotUrl || ''}
                   onChange={(e) =>
-                    setEditingProps({ ...editingProps, title: e.target.value })
+                    setEditingProps({ ...editingProps, screenshotUrl: e.target.value })
                   }
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2"
                 />
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Primary Color
-                </label>
-                <input
-                  type="color"
-                  value={editingProps.primaryColor || '#6366f1'}
-                  onChange={(e) =>
-                    setEditingProps({
-                      ...editingProps,
-                      primaryColor: e.target.value,
-                    })
-                  }
-                  className="w-full h-10 bg-gray-700 border border-gray-600 rounded"
-                />
-              </div>
-
-              {editingProps.theme === 'refactor' && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Before Code
-                    </label>
-                    <textarea
-                      value={editingProps.beforeCode || ''}
-                      onChange={(e) =>
-                        setEditingProps({
-                          ...editingProps,
-                          beforeCode: e.target.value,
-                        })
-                      }
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 font-mono text-sm"
-                      rows={4}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      After Code
-                    </label>
-                    <textarea
-                      value={editingProps.afterCode || ''}
-                      onChange={(e) =>
-                        setEditingProps({
-                          ...editingProps,
-                          afterCode: e.target.value,
-                        })
-                      }
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 font-mono text-sm"
-                      rows={4}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      Speed Improvement (%)
-                    </label>
-                    <input
-                      type="number"
-                      value={editingProps.speedImprovement || 0}
-                      onChange={(e) =>
-                        setEditingProps({
-                          ...editingProps,
-                          speedImprovement: parseInt(e.target.value) || 0,
-                        })
-                      }
-                      className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2"
-                    />
-                  </div>
-                </>
-              )}
-
-              {editingProps.theme === 'bug' && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Bug Description
-                  </label>
-                  <textarea
-                    value={editingProps.bugDescription || ''}
-                    onChange={(e) =>
-                      setEditingProps({
-                        ...editingProps,
-                        bugDescription: e.target.value,
-                      })
-                    }
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2"
-                    rows={3}
-                  />
-                </div>
-              )}
-
-              {editingProps.theme === 'feature' && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Screenshot URL
-                  </label>
-                  <input
-                    type="url"
-                    value={editingProps.screenshotUrl || ''}
-                    onChange={(e) =>
-                      setEditingProps({
-                        ...editingProps,
-                        screenshotUrl: e.target.value,
-                      })
-                    }
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2"
-                  />
-                </div>
-              )}
-
-              <div className="flex gap-4 pt-4">
-                <button
-                  onClick={handleSave}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded font-semibold"
-                >
-                  Save Changes
-                </button>
-                <button
-                  onClick={handleRender}
-                  className="flex-1 bg-green-600 hover:bg-green-700 px-6 py-3 rounded font-semibold"
-                >
-                  Render Video
-                </button>
-              </div>
+            <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-2">
+              <Button onClick={handleSave} variant="outline">
+                Save
+              </Button>
+              <Button onClick={handleRender}>Render</Button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </AppShell>
   )
 }

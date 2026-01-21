@@ -37,12 +37,13 @@ export async function POST(request: Request) {
       message: 'Video rendering started',
       videoId,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Video render error:', error)
+    const message =
+      error instanceof Error ? error.message : 'Failed to start video render'
     return NextResponse.json(
-      { error: error.message || 'Failed to start video render' },
+      { error: message },
       { status: 500 }
     )
   }
 }
-

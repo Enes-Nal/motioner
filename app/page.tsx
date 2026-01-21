@@ -1,41 +1,15 @@
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getSupabaseEnv } from '@/lib/supabase/env'
+import { Badge } from '@/components/ui/badge'
+import { ButtonLink } from '@/components/ui/button-link'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { SupabaseMissing } from '@/components/app/supabase-missing'
 
 export default async function HomePage() {
   const hasSupabase = getSupabaseEnv().ok
 
   if (!hasSupabase) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-        <div className="container mx-auto px-4 py-16">
-          <div className="max-w-3xl mx-auto">
-            <h1 className="text-4xl font-bold mb-4">Motioner</h1>
-            <p className="text-gray-300 mb-8">
-              Supabase isn’t configured yet. Add your Supabase project URL + anon
-              key to <code className="bg-gray-800 px-2 py-1 rounded">.env.local</code>{' '}
-              (copy from <code className="bg-gray-800 px-2 py-1 rounded">env.template</code>).
-            </p>
-
-            <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-              <div className="text-sm text-gray-300 space-y-2">
-                <div>
-                  Required:
-                  <code className="block mt-2 bg-gray-900/70 p-3 rounded">
-                    NEXT_PUBLIC_SUPABASE_URL
-                    {'\n'}
-                    NEXT_PUBLIC_SUPABASE_ANON_KEY
-                  </code>
-                </div>
-                <div className="text-gray-400">
-                  Find them in Supabase Dashboard → Project Settings → API.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+    return <SupabaseMissing />
   }
 
   const supabase = await createClient()
@@ -44,75 +18,109 @@ export default async function HomePage() {
   } = await supabase.auth.getUser()
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      <div className="container mx-auto px-4 py-16">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-6xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-purple-600 bg-clip-text text-transparent">
-            Motioner
-          </h1>
-          <p className="text-2xl text-gray-300 mb-8">
-            Transform GitHub PRs into high-energy changelog videos for X
-          </p>
-          <p className="text-lg text-gray-400 mb-12">
-            The Automated Dev-Rel. Turn your pull requests into 30-second viral
-            videos automatically.
-          </p>
+    <div className="relative">
+      <div className="border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="font-semibold tracking-tight">
+              <span className="text-primary">Motioner</span>
+            </div>
+            <Badge variant="secondary" className="hidden md:inline-flex">
+              Beta
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            {user ? (
+              <>
+                <ButtonLink href="/create" size="sm">
+                  Create
+                </ButtonLink>
+                <ButtonLink href="/videos" size="sm" variant="outline">
+                  Videos
+                </ButtonLink>
+              </>
+            ) : (
+              <ButtonLink href="/login" size="sm">
+                Sign in
+              </ButtonLink>
+            )}
+          </div>
+        </div>
+      </div>
 
-          {user ? (
-            <div className="space-y-4">
-              <div className="flex gap-4 justify-center">
-                <Link
-                  href="/create"
-                  className="inline-block bg-blue-600 hover:bg-blue-700 px-8 py-4 rounded-lg text-lg font-semibold transition"
-                >
-                  Create Video
-                </Link>
-                <Link
-                  href="/editor"
-                  className="inline-block bg-gray-700 hover:bg-gray-600 px-8 py-4 rounded-lg text-lg font-semibold transition"
-                >
-                  My Videos
-                </Link>
-              </div>
-              <div className="text-gray-400">
-                Welcome back, {user.email}
-              </div>
+      <div className="mx-auto w-full max-w-6xl px-4 py-12 md:py-16">
+        <div className="grid gap-10 md:grid-cols-2 md:items-center">
+          <div className="space-y-5">
+            <Badge className="w-fit" variant="default">
+              Supabase-first workflow
+            </Badge>
+            <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
+              Turn PRs into crisp changelog videos.
+            </h1>
+            <p className="text-base text-muted-foreground md:text-lg">
+              Motioner analyzes GitHub pull requests, generates a script, and lets you review a
+              Remotion preview before rendering.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              {user ? (
+                <>
+                  <ButtonLink href="/create" size="lg">
+                    Create a video
+                  </ButtonLink>
+                  <ButtonLink href="/videos" size="lg" variant="outline">
+                    View videos
+                  </ButtonLink>
+                </>
+              ) : (
+                <>
+                  <ButtonLink href="/login" size="lg">
+                    Get started
+                  </ButtonLink>
+                  <ButtonLink href="/login" size="lg" variant="outline">
+                    Sign in with GitHub
+                  </ButtonLink>
+                </>
+              )}
             </div>
-          ) : (
-            <div className="space-y-4">
-              <Link
-                href="/login"
-                className="inline-block bg-blue-600 hover:bg-blue-700 px-8 py-4 rounded-lg text-lg font-semibold transition"
-              >
-                Get Started
-              </Link>
-              <p className="text-sm text-gray-500">
-                Sign in with GitHub to begin
-              </p>
-            </div>
-          )}
+            {user?.email && (
+              <p className="text-sm text-muted-foreground">Signed in as {user.email}</p>
+            )}
+          </div>
 
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-            <div className="bg-gray-800/50 rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-3">🤖 AI-Powered</h3>
-              <p className="text-gray-400">
-                GPT-4o analyzes your PRs and generates engaging scripts
-                automatically
-              </p>
-            </div>
-            <div className="bg-gray-800/50 rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-3">🎬 Remotion</h3>
-              <p className="text-gray-400">
-                Programmatic video generation with React. No video editing
-                skills needed.
-              </p>
-            </div>
-            <div className="bg-gray-800/50 rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-3">⚡ Fast</h3>
-              <p className="text-gray-400">
-                Render videos in seconds with AWS Lambda. Ready to post on X.
-              </p>
-            </div>
+          <div className="grid gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>AI-powered analysis</CardTitle>
+                <CardDescription>
+                  Generate a script and video props from your PR diff and metadata.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                Keeps things concise and brand-safe for public changelogs.
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Human-in-the-loop editor</CardTitle>
+                <CardDescription>
+                  Review the composition, tweak props, then render.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                Built for speed: preview first, then ship.
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Remotion templates</CardTitle>
+                <CardDescription>
+                  Feature, refactor, and bug-fix styles out of the box.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                Export square videos ready for X.
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

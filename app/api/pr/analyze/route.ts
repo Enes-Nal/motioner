@@ -100,12 +100,13 @@ export async function POST(request: Request) {
       videoId: videoData.id,
       hasSensitiveInfo,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('PR analysis error:', error)
+    const message =
+      error instanceof Error ? error.message : 'Failed to analyze PR'
     return NextResponse.json(
-      { error: error.message || 'Failed to analyze PR' },
+      { error: message },
       { status: 500 }
     )
   }
 }
-

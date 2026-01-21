@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import React from 'react'
 
 interface ScreenshotDisplayProps {
@@ -40,4 +41,3 @@ export const ScreenshotDisplay: React.FC<ScreenshotDisplayProps> = ({
     />
   )
 }
-

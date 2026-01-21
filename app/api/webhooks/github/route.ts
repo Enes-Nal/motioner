@@ -126,10 +126,12 @@ export async function POST(request: Request) {
       videoId: videoData.id,
       prId: prData.id,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Webhook error:', error)
+    const message =
+      error instanceof Error ? error.message : 'Webhook processing failed'
     return NextResponse.json(
-      { error: error.message || 'Webhook processing failed' },
+      { error: message },
       { status: 500 }
     )
   }
