@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import type { ComponentType } from 'react'
 import { Player } from '@remotion/player'
 import { createClient } from '@/lib/supabase/client'
 import { FeatureFlash } from '@/remotion/src/compositions/FeatureFlash'
@@ -126,7 +127,10 @@ export default function EditorPage() {
     }
   }
 
-  function renderComposition() {
+  function getCompositionConfig(): null | {
+    component: ComponentType<any>
+    inputProps: Record<string, unknown>
+  } {
     if (!editingProps) return null
 
     const commonProps = {
@@ -136,28 +140,31 @@ export default function EditorPage() {
 
     switch (editingProps.theme) {
       case 'feature':
-        return (
-          <FeatureFlash
-            {...commonProps}
-            screenshotUrl={editingProps.screenshotUrl || ''}
-          />
-        )
+        return {
+          component: FeatureFlash,
+          inputProps: {
+            ...commonProps,
+            screenshotUrl: editingProps.screenshotUrl || '',
+          },
+        }
       case 'refactor':
-        return (
-          <RefactorSpeed
-            {...commonProps}
-            beforeCode={editingProps.beforeCode || ''}
-            afterCode={editingProps.afterCode || ''}
-            speedImprovement={editingProps.speedImprovement || 0}
-          />
-        )
+        return {
+          component: RefactorSpeed,
+          inputProps: {
+            ...commonProps,
+            beforeCode: editingProps.beforeCode || '',
+            afterCode: editingProps.afterCode || '',
+            speedImprovement: editingProps.speedImprovement || 0,
+          },
+        }
       case 'bug':
-        return (
-          <BugSquash
-            {...commonProps}
-            bugDescription={editingProps.bugDescription || ''}
-          />
-        )
+        return {
+          component: BugSquash,
+          inputProps: {
+            ...commonProps,
+            bugDescription: editingProps.bugDescription || '',
+          },
+        }
       default:
         return null
     }
@@ -179,7 +186,7 @@ export default function EditorPage() {
     )
   }
 
-  const Composition = renderComposition()
+  const compositionConfig = getCompositionConfig()
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -193,10 +200,11 @@ export default function EditorPage() {
           {/* Left Pane: Remotion Player */}
           <div className="bg-gray-800 rounded-lg p-6">
             <h2 className="text-xl font-semibold mb-4">Preview</h2>
-            {Composition && (
+            {compositionConfig && (
               <div className="bg-black rounded-lg overflow-hidden">
                 <Player
-                  component={Composition}
+                  component={compositionConfig.component}
+                  inputProps={compositionConfig.inputProps}
                   durationInFrames={450}
                   compositionWidth={1080}
                   compositionHeight={1080}
@@ -356,4 +364,3 @@ export default function EditorPage() {
     </div>
   )
 }
-

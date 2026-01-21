@@ -9,7 +9,7 @@ import {
 import { Title } from '../components/Title'
 import { ScreenshotDisplay } from '../components/ScreenshotDisplay'
 
-export interface FeatureFlashProps {
+export interface FeatureFlashProps extends Record<string, unknown> {
   title: string
   screenshotUrl: string
   primaryColor: string
@@ -77,4 +77,3 @@ export const FeatureFlash: React.FC<FeatureFlashProps> = ({
     </AbsoluteFill>
   )
 }
-

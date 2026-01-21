@@ -122,7 +122,9 @@ motioner/
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-OPENAI_API_KEY=your_openai_api_key
+OPENROUTER_API_KEY=your_openrouter_api_key
+# Optional server-only:
+# SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
 
 ## 🎯 Key Features Implemented
@@ -149,4 +151,3 @@ See [SETUP.md](./SETUP.md) for detailed setup instructions.
 - [README.md](./README.md) - Main project documentation
 - [SETUP.md](./SETUP.md) - Setup guide
 - [remotion/README.md](./remotion/README.md) - Remotion templates documentation
-

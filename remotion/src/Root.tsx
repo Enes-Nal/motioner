@@ -1,13 +1,13 @@
 import React from 'react'
 import { Composition } from 'remotion'
-import { FeatureFlash } from './compositions/FeatureFlash'
-import { RefactorSpeed } from './compositions/RefactorSpeed'
-import { BugSquash } from './compositions/BugSquash'
+import { FeatureFlash, type FeatureFlashProps } from './compositions/FeatureFlash'
+import { RefactorSpeed, type RefactorSpeedProps } from './compositions/RefactorSpeed'
+import { BugSquash, type BugSquashProps } from './compositions/BugSquash'
 
 export const RemotionRoot: React.FC = () => {
   return (
     <>
-      <Composition
+      <Composition<any, FeatureFlashProps>
         id="FeatureFlash"
         component={FeatureFlash}
         durationInFrames={450}
@@ -20,7 +20,7 @@ export const RemotionRoot: React.FC = () => {
           primaryColor: '#6366f1',
         }}
       />
-      <Composition
+      <Composition<any, RefactorSpeedProps>
         id="RefactorSpeed"
         component={RefactorSpeed}
         durationInFrames={450}
@@ -35,7 +35,7 @@ export const RemotionRoot: React.FC = () => {
           primaryColor: '#10b981',
         }}
       />
-      <Composition
+      <Composition<any, BugSquashProps>
         id="BugSquash"
         component={BugSquash}
         durationInFrames={450}
@@ -51,4 +51,3 @@ export const RemotionRoot: React.FC = () => {
     </>
   )
 }
-

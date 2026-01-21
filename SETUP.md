@@ -4,7 +4,7 @@
 
 - Node.js 18+ and npm
 - A Supabase account and project
-- An OpenAI API key
+- An AI API key (OpenRouter recommended, or OpenAI / Anthropic)
 - A GitHub account (for OAuth)
 
 ## Step-by-Step Setup
@@ -49,7 +49,9 @@ Create `.env.local` file:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-OPENAI_API_KEY=your_openai_api_key
+OPENROUTER_API_KEY=your_openrouter_api_key
+# Optional server-only (webhooks, cron jobs, etc):
+# SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
 
 ### 5. Run Development Servers
@@ -66,7 +68,7 @@ npm run remotion:dev
 
 ### 6. Access the Application
 
-- Next.js app: http://localhost:3000
+- Next.js app: http://localhost:3001
 - Remotion Studio: http://localhost:3000 (when using Remotion Player in editor)
 
 ## GitHub Webhook Setup (Optional)
@@ -127,4 +129,3 @@ Verify your API key is correct and you have sufficient credits. Check the API us
 ### GitHub OAuth not working
 
 Verify callback URL matches exactly in both GitHub OAuth App settings and Supabase provider settings.
-

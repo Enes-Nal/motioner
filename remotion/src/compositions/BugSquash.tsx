@@ -9,7 +9,7 @@ import {
 import { Title } from '../components/Title'
 import { BugAnimation } from '../components/BugAnimation'
 
-export interface BugSquashProps {
+export interface BugSquashProps extends Record<string, unknown> {
   title: string
   bugDescription: string
   primaryColor: string
@@ -110,4 +110,3 @@ export const BugSquash: React.FC<BugSquashProps> = ({
     </AbsoluteFill>
   )
 }
-

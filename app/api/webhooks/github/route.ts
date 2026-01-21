@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { analyzePR, detectSensitiveInfo, sanitizeCode } from '@/utils/pr-analyzer'
 
 export async function POST(request: Request) {
@@ -15,9 +16,11 @@ export async function POST(request: Request) {
     const pr = payload.pull_request
     const repo = payload.repository
 
-    // Get user by GitHub username or email
-    const supabase = await createClient()
-    
+    // Webhooks are server-to-server and typically won't have user cookies.
+    // Use service role if configured, otherwise fall back to anon client (may fail under RLS).
+    const supabase =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ? createAdminClient() : await createClient()
+
     // Try to find user by GitHub username from PR author
     const { data: userProfile } = await supabase
       .from('user_profiles')
@@ -131,4 +134,3 @@ export async function POST(request: Request) {
     )
   }
 }
-

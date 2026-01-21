@@ -10,7 +10,7 @@ import { Title } from '../components/Title'
 import { CodeComparison } from '../components/CodeComparison'
 import { Speedometer } from '../components/Speedometer'
 
-export interface RefactorSpeedProps {
+export interface RefactorSpeedProps extends Record<string, unknown> {
   title: string
   beforeCode: string
   afterCode: string
@@ -107,4 +107,3 @@ export const RefactorSpeed: React.FC<RefactorSpeedProps> = ({
     </AbsoluteFill>
   )
 }
-
